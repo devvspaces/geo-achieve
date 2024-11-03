@@ -34,7 +34,7 @@ shared ({ caller }) actor class Backend() {
   stable let user_to_institution = Map.new<Principal, InstitutionUser>();
   stable let institution_to_issuers = Map.new<Text, Map.Map<Principal, Issuer>>();
   stable let institution_to_certs = Map.new<Text, Vector.Vector<Nat>>();
-  stable let tokenCounter = 0;
+  stable var tokenCounter = 0;
   stable var acls = Vector.new<Principal>();
   stable var admin = caller;
 
@@ -473,6 +473,7 @@ shared ({ caller }) actor class Backend() {
                     Map.set(institution_to_certs, thash, institution.id, t);
                   };
                 };
+                tokenCounter := tokenCounter + 1;
                 return #ok(tokenId);
               };
             };
