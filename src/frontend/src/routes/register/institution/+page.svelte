@@ -159,12 +159,14 @@
 					latitude: parseFloat(formData.latitude),
 					longitude: parseFloat(formData.longitude)
 				});
-				isSubmitting = false;
 				// @ts-ignore
 				if (response.err) {
-					// @ts-ignore
+          isSubmitting = false;
+          // @ts-ignore
 					alert(response.err);
 				} else {
+          await store.initInternetIdentity();
+				  isSubmitting = false;
 					alert('Account created successfully');
 					// Redirect to the dashboard
 					goto('/dashboard', { replaceState: true });

@@ -7,7 +7,8 @@
 		Label,
 		Input,
 		Spinner,
-		Fileupload
+		Fileupload,
+    Badge,
 	} from 'flowbite-svelte';
 	import {
 		ArrowRightOutline,
@@ -20,6 +21,9 @@
 	} from 'flowbite-svelte-icons';
 	import Editor from '@tinymce/tinymce-svelte';
 	import { store } from '$lib/store';
+	import { convertArrayToObjects } from '$lib/utils';
+	import { createGeoNft } from '$lib/utils';
+	import { Principal } from '@dfinity/principal';
 
 	let conf = {
 		height: 200,
@@ -126,10 +130,10 @@
 			tagline: storeState.recipient?.tagline || '',
 			image: storeState.recipient?.image ? new Uint8Array(storeState.recipient.image) : null,
 			description: storeState.recipient?.description || '',
-			linkedin: storeState.recipient?.linkedin?.length ? storeState.recipient?.linkedin[0] : "",
-			github: storeState.recipient?.github?.length ? storeState.recipient?.github[0] : "",
-			twitter: storeState.recipient?.twitter?.length ? storeState.recipient?.twitter[0] : "",
-			youtube: storeState.recipient?.youtube?.length ? storeState.recipient?.youtube[0] : ""
+			linkedin: storeState.recipient?.linkedin?.length ? storeState.recipient?.linkedin[0] : '',
+			github: storeState.recipient?.github?.length ? storeState.recipient?.github[0] : '',
+			twitter: storeState.recipient?.twitter?.length ? storeState.recipient?.twitter[0] : '',
+			youtube: storeState.recipient?.youtube?.length ? storeState.recipient?.youtube[0] : ''
 		};
 	});
 
@@ -176,24 +180,25 @@
 				// @ts-ignore
 				if (response.ok == null) {
 					alert('Account updated successfully');
-          store.update((state) => {
-            state.recipient = {
-              ...state.recipient,
-              name: formData.name,
-              tagline: formData.tagline,
-              // @ts-ignore
-              image: formData.image,
-              description: formData.description,
-              linkedin: formData.linkedin ? [formData.linkedin] : [],
-              github: formData.github ? [formData.github] : [],
-              twitter: formData.twitter ? [formData.twitter] : [],
-              youtube: formData.youtube ? [formData.youtube] : []
-            }
-            return state;
-          });
+					store.update((state) => {
+						state.recipient = {
+							...state.recipient,
+							name: formData.name,
+							tagline: formData.tagline,
+							// @ts-ignore
+							image: formData.image,
+							description: formData.description,
+							linkedin: formData.linkedin ? [formData.linkedin] : [],
+							github: formData.github ? [formData.github] : [],
+							twitter: formData.twitter ? [formData.twitter] : [],
+							youtube: formData.youtube ? [formData.youtube] : []
+						};
+						return state;
+					});
 				} else {
-          alert(response.err);
-        }
+					// @ts-ignore
+					alert(response.err);
+				}
 			} catch (error) {
 				console.error(error);
 			}
@@ -211,6 +216,90 @@
 		}
 		await updateRecipient();
 	}
+
+	/**
+	 * @type {any[]}
+	 */
+	const certificates = $state([]);
+
+	let isLoading = $state(false);
+
+	$effect(() => {
+		(async () => {
+			if (!storeState.principal || !storeState.backendActor) {
+				return;
+			}
+			isLoading = true;
+			const geoNft = await createGeoNft();
+			let myNfts = await geoNft.icrc7_tokens_of(
+				{
+					owner: storeState.principal,
+					subaccount: []
+				},
+				[],
+				[]
+			);
+			let token_ids = myNfts;
+			try {
+				const result = await geoNft.icrc7_token_metadata(token_ids);
+				// @ts-ignore
+				// @ts-ignore
+				const tokens = result;
+				const data = tokens.map((item) => convertArrayToObjects(item));
+				console.log(data);
+				for (let i = 0; i < data.length; i++) {
+					/**
+					 * @type {any}
+					 */
+					let certificate = {};
+					if (!data[i]) {
+						continue;
+					}
+					// @ts-ignore
+					let issued_on = data[i].issued_on;
+					certificate['id'] = Number(token_ids[i]).toString();
+					certificate['issued_on'] = issued_on
+						? new Date(Number(issued_on) / 1000000).toDateString()
+						: 'N/A';
+					// @ts-ignore
+					certificate['name'] = data[i].name;
+					// @ts-ignore
+					certificate['issued_to'] = data[i].recipient_name;
+					// @ts-ignore
+					certificate.category = data[i].kind;
+
+					// @ts-ignore
+					let institutionT = data[i].institution;
+					// @ts-ignore
+					if (data[i].institution?.constructor?.name == 'Uint8Array') {
+						// @ts-ignore
+						institutionT = Principal.fromUint8Array(data[i].institution).toText();
+					}
+
+          if (institutionT) {
+            const response = await storeState.backendActor.get_institution_user_by_principal(
+              Principal.fromText(institutionT)
+            );
+            // @ts-ignore
+            if (response.ok) {
+              /**
+               * @type {import("../../../../declarations/backend/backend.did").InstitutionUser}
+               */
+              // @ts-ignore
+              const institution = response.ok;
+              certificate['institution'] = institution.name;
+              certificate['location'] = institution.address;
+            }
+          }
+
+					certificates.push(certificate);
+				}
+			} catch (error) {
+				console.error(error);
+			}
+			isLoading = false;
+		})();
+	});
 </script>
 
 <Modal bind:open={formModal} size="lg" autoclose={false} class="w-full">
@@ -302,6 +391,9 @@
 
 <div>
 	<div class="container mx-auto py-8">
+		<div class="mb-4 flex items-center justify-center">
+			<Spinner class={`me-3 ${isLoading == false && 'hidden'}`} size="8" color="white" />
+		</div>
 		<div class="grid grid-cols-4 gap-6 px-4 sm:grid-cols-12">
 			<div class="col-span-4 sm:col-span-3">
 				<div class="sticky top-0 rounded-lg bg-gray-100 p-6 shadow dark:bg-gray-900">
@@ -316,7 +408,7 @@
 							{storeState.recipient?.name}
 						</h1>
 						<p class="mb-3 text-gray-700 dark:text-gray-300">{storeState.recipient?.tagline}</p>
-						<p class="text-gray-700 dark:text-gray-500">
+						<p class="text-gray-700 dark:text-gray-500 text-center">
 							Principal: {storeState.principal?.toText()}
 						</p>
 						<div class="mt-6 flex space-x-4 text-center" style="width: 100%;">
@@ -387,59 +479,28 @@
 					<h2 class="mb-4 mt-10 text-xl font-bold dark:text-white">Achievements</h2>
 
 					<Timeline order="vertical">
-						<TimelineItem title="BSc Computer Science" date="February 2022">
-							<svelte:fragment slot="icon">
-								<span
-									class="bg-primary-200 dark:bg-primary-900 absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full ring-8 ring-white dark:ring-gray-900"
-								>
-									<CalendarWeekSolid class="text-primary-600 dark:text-primary-400 h-4 w-4" />
-								</span>
-							</svelte:fragment>
-							<p class="mb-2 text-base font-normal text-gray-500 dark:text-gray-400">
-								Graduated with a BSc in Computer Science from North Carolina State University.
-							</p>
-							<p class="mb-2 text-base font-normal text-gray-500 dark:text-gray-400">
-								North Carolina State University
-							</p>
-							<p class="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">
-								Location: Raleigh, North Carolina
-							</p>
-							<a href="/certificate/1">
-								<Button color="alternative">View<ArrowRightOutline class="ms-2 h-5 w-5" /></Button>
-							</a>
-						</TimelineItem>
-						<TimelineItem date="March 2022" title="Application UI code in Tailwind CSS">
-							<svelte:fragment slot="icon">
-								<span
-									class="bg-primary-200 dark:bg-primary-900 absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full ring-8 ring-white dark:ring-gray-900"
-								>
-									<CalendarWeekSolid class="text-primary-600 dark:text-primary-400 h-4 w-4" />
-								</span>
-							</svelte:fragment>
-							<p class="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">
-								Get access to over 20+ pages including a dashboard layout, charts, kanban board,
-								calendar, and pre-order E-commerce & Marketing pages.
-							</p>
-							<Button color="alternative"
-								>Learn more<ArrowRightOutline class="ms-2 h-5 w-5" /></Button
-							>
-						</TimelineItem>
-						<TimelineItem title="Application UI code in Tailwind CSS" date="April 2022">
-							<svelte:fragment slot="icon">
-								<span
-									class="bg-primary-200 dark:bg-primary-900 absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full ring-8 ring-white dark:ring-gray-900"
-								>
-									<CalendarWeekSolid class="text-primary-600 dark:text-primary-400 h-4 w-4" />
-								</span>
-							</svelte:fragment>
-							<p class="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">
-								Get started with dozens of web components and interactive elements built on top of
-								Tailwind CSS.
-							</p>
-							<Button color="alternative"
-								>Learn more<ArrowRightOutline class="ms-2 h-5 w-5" /></Button
-							>
-						</TimelineItem>
+						{#each certificates as cert}
+							<TimelineItem title={cert.name} date={cert.issued_on}>
+								<svelte:fragment slot="icon">
+									<span
+										class="bg-primary-200 dark:bg-primary-900 absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full ring-8 ring-white dark:ring-gray-900"
+									>
+										<CalendarWeekSolid class="text-primary-600 dark:text-primary-400 h-4 w-4" />
+									</span>
+								</svelte:fragment>
+								<Badge class="my-2" border color="green">{cert.category}</Badge>
+								<p class="mb-2 text-base font-normal text-gray-500 dark:text-gray-400">
+									{cert.institution}
+								</p>
+								<p class="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">
+									Location: {cert.location}
+								</p>
+								<a href={`/certificate?id=${cert.id}`}>
+									<Button color="alternative">View<ArrowRightOutline class="ms-2 h-5 w-5" /></Button
+									>
+								</a>
+							</TimelineItem>
+						{/each}
 					</Timeline>
 				</div>
 			</div>

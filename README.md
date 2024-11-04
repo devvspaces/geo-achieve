@@ -4,13 +4,20 @@ A system that mints educational achievement NFTs with embedded geolocation metad
 
 Welcome to your new `GeoAchieve` project and to the Internet Computer development community. By default, creating a new project adds this README and some template files to your project directory. You can edit these template files to customize your project and to include your own code to speed up the development cycle.
 
+VIEW YOUTUBE DEMO: https://youtu.be/9OJ7ws7Op2Q
+
 Deployed canisters.
 URLs:
   Frontend canister via browser
+
     frontend: https://2xjsu-diaaa-aaaak-ao4tq-cai.icp0.io/
+
   Backend canister via Candid interface:
+
     backend: https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=2qiua-oqaaa-aaaak-ao4ta-cai
+
     geonft: https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=32hw2-maaaa-aaaak-ao4ua-cai
+
     internet-identity: https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=rdmx6-jaaaa-aaaaa-aaadq-cai
 
 To get started, you might want to explore the project directory structure and the default configuration file. Working with this project in your development environment will not affect any production deployment or identity tokens.

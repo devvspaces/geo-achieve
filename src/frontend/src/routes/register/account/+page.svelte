@@ -119,18 +119,18 @@
 	let storeState = $state({
 		backendActor: null,
 		principal: null,
-		error: '',
+		error: ''
 	});
 	store.subscribe((value) => {
 		storeState = value;
 	});
 
-  let isSubmitting = $state(false);
+	let isSubmitting = $state(false);
 
 	async function createRecipient() {
 		if (storeState.principal && storeState.backendActor && formData.image) {
 			try {
-        isSubmitting = true;
+				isSubmitting = true;
 				const response = await storeState.backendActor.add_recipient_user({
 					name: formData.name,
 					tagline: formData.tagline,
@@ -141,15 +141,17 @@
 					twitter: formData.twitter ? [formData.twitter] : [],
 					youtube: formData.youtube ? [formData.youtube] : []
 				});
-        isSubmitting = false;
 				// @ts-ignore
 				if (response.err) {
+					isSubmitting = false;
 					// @ts-ignore
 					alert(response.err);
 				} else {
+					await store.initInternetIdentity();
+					isSubmitting = false;
 					alert('Account created successfully');
 					// Redirect to the dashboard
-          goto('/profile', { replaceState: true });
+					goto('/profile', { replaceState: true });
 				}
 			} catch (error) {
 				console.error(error);
@@ -170,11 +172,11 @@
 		if (!storeState.principal) {
 			// Redirect to login page
 			await store.internetIdentityConnect(async () => {
-        await createRecipient();
-      });
+				await createRecipient();
+			});
 		} else {
-      await createRecipient();
-    }
+			await createRecipient();
+		}
 	}
 </script>
 
@@ -269,7 +271,13 @@
 					</Input>
 				</Label>
 			</div>
-			<Button color="purple" type="submit" class="w-full1"><Spinner class={`me-3 ${isSubmitting == false && 'hidden'}`} size="4" color="white" />Register</Button>
+			<Button color="purple" type="submit" class="w-full1"
+				><Spinner
+					class={`me-3 ${isSubmitting == false && 'hidden'}`}
+					size="4"
+					color="white"
+				/>Register</Button
+			>
 		</form>
 	</Card>
 </div>

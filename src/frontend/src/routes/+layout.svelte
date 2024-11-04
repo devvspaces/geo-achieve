@@ -12,16 +12,9 @@
 		Spinner,
 		GradientButton
 	} from 'flowbite-svelte';
-	import {
-		Footer,
-		FooterCopyright,
-		FooterLinkGroup,
-		FooterLink,
-		FooterBrand,
-		FooterIcon,
-		DarkMode
-	} from 'flowbite-svelte';
+	import { Footer, FooterCopyright, FooterIcon, DarkMode } from 'flowbite-svelte';
 	import { DiscordSolid, FacebookSolid, GithubSolid, TwitterSolid } from 'flowbite-svelte-icons';
+	import { goto } from '$app/navigation';
 	let { children } = $props();
 	let btnClass =
 		'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-xl p-2';
@@ -29,14 +22,11 @@
 	/**
 	 * @type {Object<string, string>}
 	 */
-	let paths = {
+	let paths = $state({
 		'/': 'Home',
-		'/profile': 'Profile',
-		'/institution': 'Institution',
-		'/verify': 'Verify',
-		'/dashboard': 'Dashboard',
-		'/dashboard/issuers': 'Issuers'
-	};
+		'/verify': 'Verify'
+		// '/dashboard/issuers': 'Issuers'
+	});
 
 	/**
    * @type ({
@@ -44,21 +34,50 @@
     principal: import("@dfinity/principal").Principal | null;
     error: string;
     isLoading: boolean;
+    recipient: import("../../../declarations/backend/backend.did").RecipientUser | null;
+    institution: import("../../../declarations/backend/backend.did").InstitutionUser | null;
   })
  */
 	let storeState = $state({
 		backendActor: null,
 		principal: null,
 		error: '',
-		isLoading: false
+		isLoading: false,
+		recipient: null,
+		institution: null
 	});
 	store.subscribe((value) => {
 		storeState = value;
 	});
 
-  onMount(async () => {
-    await store.checkExistingLoginAndConnect();
-  });
+	$effect(() => {
+		// This will only run when recipient or institution changes
+		if (storeState.recipient || storeState.institution) {
+			const newPaths = {
+				'/': 'Home',
+				'/verify': 'Verify'
+			};
+
+			if (storeState.recipient) {
+				// @ts-ignore
+				newPaths['/profile'] = 'Profile';
+			}
+			if (storeState.institution) {
+				// @ts-ignore
+				newPaths['/institution'] = 'Institution';
+				// @ts-ignore
+				newPaths['/dashboard'] = 'Dashboard';
+			}
+
+			paths = newPaths;
+		}
+	});
+
+	onMount(async () => {
+    if (!storeState.principal) {
+      await store.checkExistingLoginAndConnect();
+    }
+	});
 
 	async function connect() {
 		await store.internetIdentityConnect();
@@ -66,6 +85,11 @@
 
 	async function disconnect() {
 		await store.disconnect();
+		paths = {
+			'/': 'Home',
+			'/verify': 'Verify'
+		};
+		goto('/');
 	}
 </script>
 

@@ -13,15 +13,8 @@
 			</h1>
 			<div class="mt-9 px-8 sm:flex sm:items-start sm:justify-center sm:space-x-5 sm:px-0">
 				<a
-					href="#"
-					title=""
-					class="mb-3 inline-flex w-full items-center justify-center rounded-xl border-2 border-transparent bg-gray-900 px-8 py-3 text-lg font-bold text-white transition-all duration-200 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 sm:mb-0 sm:w-auto"
-					role="button"
-				>
-					Get Started
-				</a>
-				<a
-					href="#"
+					href="https://youtu.be/9OJ7ws7Op2Q"
+          target="blank"
 					class="inline-flex w-full items-center justify-center rounded-xl border-2 border-gray-900 bg-gray-100 px-8 py-3 text-lg font-bold text-gray-900 transition-all duration-200 hover:bg-gray-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 sm:w-auto"
 					role="button">View demo</a
 				>

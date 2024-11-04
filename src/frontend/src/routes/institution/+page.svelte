@@ -195,12 +195,13 @@
 							github: formData.github ? [formData.github] : [],
 							twitter: formData.twitter ? [formData.twitter] : [],
 							youtube: formData.youtube ? [formData.youtube] : [],
-							latitude: formData.latitude,
-							longitude: formData.longitude
+							latitude: parseFloat(formData.latitude),
+							longitude: parseFloat(formData.longitude)
 						};
 						return state;
 					});
 				} else {
+					// @ts-ignore
 					alert(response.err);
 				}
 			} catch (error) {
@@ -277,21 +278,11 @@
 		<div class="flex items-end" style="gap: 4rem;">
 			<Label class="space-y-2">
 				<span>Latitude</span>
-				<Input
-					type="text"
-					name="latitude"
-					bind:value={formData.latitude}
-					required
-				/>
+				<Input type="text" name="latitude" bind:value={formData.latitude} required />
 			</Label>
 			<Label class="space-y-2">
 				<span>Longitude</span>
-				<Input
-					type="text"
-					name="latitude"
-					bind:value={formData.longitude}
-					required
-				/>
+				<Input type="text" name="latitude" bind:value={formData.longitude} required />
 			</Label>
 			<Button class="ms-auto" on:click={updateLocation} color="purple">Update Location</Button>
 		</div>
@@ -359,7 +350,9 @@
 						<p class="mb-3 text-gray-700 dark:text-gray-300">
 							{storeState.institution?.address}
 						</p>
-						<p class="text-gray-700 dark:text-gray-500">{storeState.institution?.id}</p>
+						<p class="text-center text-gray-700 dark:text-gray-500">
+							Principal: {storeState.principal?.toText()}
+						</p>
 						<div class="mt-6 flex space-x-4 text-center" style="width: 100%;">
 							<Button on:click={() => (formModal = true)} color="purple" style="width: 100%;"
 								>Edit</Button

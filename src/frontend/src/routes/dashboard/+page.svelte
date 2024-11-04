@@ -29,14 +29,13 @@
 		UserRemoveOutline
 	} from 'flowbite-svelte-icons';
 	import { store } from '$lib/store';
-	import { createGeoNft } from '$lib/utils';
+	import { convertArrayToObjects, createGeoNft } from '$lib/utils';
 	import { Principal } from '@dfinity/principal';
 
 	let divClass = 'bg-white dark:bg-gray-900 relative shadow-md sm:rounded-lg overflow-hidden';
 	let innerDivClass =
 		'flex flex-col md:flex-row items-center justify-between space-y-3 md:space-y-0 md:space-x-4 p-4';
 	let searchClass = 'w-full md:w-1/2 relative';
-	let svgDivClass = 'absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none';
 	let classInput =
 		'text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2  pl-10';
 
@@ -45,17 +44,15 @@
 	const itemsPerPage = $state(10);
 	const showPage = 5;
 	let totalPages = $state(0);
-	const paginationData = $state([
-		{
-			id: 'HAVARD-CS-345',
-			name: 'John Doe',
-			degree: 'BSc Computer Science',
-			institution: 'University of Lagos',
-			location: 'Lagos, Nigeria',
-			category: 'Degree',
-			issued_on: 'Monday, 12th April 2021'
-		}
-	]);
+	/**
+	 * @type {{
+	 * id: number;
+	 * name: string;
+	 * kind: string;
+	 * issued_on: string;
+	 * }[]}
+	 */
+	const paginationData = $state([]);
 
 	/**
  * @type ({
@@ -98,18 +95,38 @@
 					// @ts-ignore
 					const token_ids = result.ok;
 					if (geoNft) {
-						console.log(geoNft);
-						geoNft.icrc7_token_metadata(token_ids).then((result) => {
-              console.log(result);
-							// @ts-ignore
-							if (result.ok) {
+						geoNft
+							.icrc7_token_metadata(token_ids)
+							.then((result) => {
 								// @ts-ignore
-								const tokens = result.ok;
+								// @ts-ignore
+								const tokens = result;
 								console.log(tokens);
-							}
-						}).catch((e) => {
-              console.log(e);
-            });
+								const data = tokens.map((item) => convertArrayToObjects(item));
+								for (let i = 0; i < data.length; i++) {
+									if (!data[i]) {
+										continue;
+									}
+									// @ts-ignore
+									let issued_on = data[i].issued_on;
+									let newObj = {
+										id: Number(token_ids[i]),
+										...data[i],
+										issued_on: issued_on ? new Date(Number(issued_on) / 1000000) : 'N/A'
+									};
+									// @ts-ignore
+									if (newObj.institution.constructor.name == 'Uint8Array') {
+										// @ts-ignore
+										newObj.institution = Principal.fromUint8Array(newObj.institution).toText();
+									}
+									// @ts-ignore
+									paginationData.push(newObj);
+								}
+								renderPagination(paginationData.length);
+							})
+							.catch((e) => {
+								console.log(e);
+							});
 					}
 				}
 			})
@@ -131,7 +148,7 @@
 	/**
 	 * @type {Number}
 	 */
-	let endPage;
+	let endPage = $state(0);
 
 	const updateDataAndPagination = () => {
 		const currentPageItems = paginationData.slice(currentPosition, currentPosition + itemsPerPage);
@@ -173,7 +190,7 @@
 
 	onMount(() => {
 		// Call renderPagination when the component initially mounts
-		renderPagination(paginationData.length);
+		// renderPagination(paginationData.length);
 	});
 
 	let currentPageItems = $derived(
@@ -276,7 +293,7 @@
 						kind = {
 							Degree: {
 								major: formData.majors,
-								gpa: BigInt(formData.gpa),
+								gpa: parseFloat(formData.gpa),
 								years: BigInt(formData.years)
 							}
 						};
@@ -537,11 +554,11 @@
 					{#each filteredItems as item (item.id)}
 						<TableBodyRow>
 							<TableBodyCell tdClass="px-4 py-3">{item.id}</TableBodyCell>
-							<TableBodyCell tdClass="px-4 py-3">{item.category}</TableBodyCell>
+							<TableBodyCell tdClass="px-4 py-3">{item.kind}</TableBodyCell>
 							<TableBodyCell tdClass="px-4 py-3">{item.name}</TableBodyCell>
 							<TableBodyCell tdClass="px-4 py-3">{item.issued_on}</TableBodyCell>
 							<TableBodyCell tdClass="px-4 py-3">
-								<a href={`/certificate/${item.id}`}>
+								<a href={`/certificate?id=${item.id}`}>
 									<Button size="sm" color="purple">View<EyeOutline class="ml-2 h-4 w-4" /></Button>
 								</a>
 								<Button on:click={() => (removeModal = true)} size="sm" color="red"
@@ -554,11 +571,11 @@
 					{#each currentPageItems as item (item.id)}
 						<TableBodyRow>
 							<TableBodyCell tdClass="px-4 py-3">{item.id}</TableBodyCell>
-							<TableBodyCell tdClass="px-4 py-3">{item.category}</TableBodyCell>
+							<TableBodyCell tdClass="px-4 py-3">{item.kind}</TableBodyCell>
 							<TableBodyCell tdClass="px-4 py-3">{item.name}</TableBodyCell>
 							<TableBodyCell tdClass="px-4 py-3">{item.issued_on}</TableBodyCell>
 							<TableBodyCell tdClass="px-4 py-3">
-								<a href={`/certificate/${item.id}`}>
+								<a href={`/certificate?id=${item.id}`}>
 									<Button size="sm" color="purple">View<EyeOutline class="ml-2 h-4 w-4" /></Button>
 								</a>
 								<Button on:click={() => (removeModal = true)} size="sm" color="red"

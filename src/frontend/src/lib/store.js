@@ -87,8 +87,12 @@ export const createStore = () => {
 	};
 
 	const initInternetIdentity = async (
-		/** @type {import("@dfinity/agent").Identity} */ identity
+		/** @type {import("@dfinity/agent").Identity | null} */ identity
 	) => {
+    if (!identity) {
+      const authClient = await AuthClient.create();
+      identity = authClient.getIdentity();
+    }
 		const backendActor = await createBackendActor(identity);
 
 		if (!backendActor) {
@@ -109,9 +113,8 @@ export const createStore = () => {
 			 */
 			// @ts-ignore
 			const user = await backendActor.get_user_type();
-			if (user.ok) {
-        console.log(user.ok);
-        console.log(user.ok.Institution);
+        console.log(user);
+        if (user.ok) {
 				// @ts-ignore
 				if (Object.keys(user.ok).indexOf('Institution') !== -1) {
 					const response = await backendActor.get_institution_user();
@@ -121,9 +124,9 @@ export const createStore = () => {
 						// @ts-ignore
 						institution = response.ok;
 					}
-					if (!window.location.pathname.startsWith('/institution')) {
-						goto('/institution', { replaceState: true });
-					}
+					// if (!window.location.pathname.startsWith('/institution')) {
+					// 	goto('/institution', { replaceState: true });
+					// }
 				} else {
 					const response = await backendActor.get_recipient_user();
 					if (!response) return;
@@ -132,9 +135,9 @@ export const createStore = () => {
 						// @ts-ignore
 						recipient = response.ok;
 					}
-					if (!window.location.pathname.startsWith('/profile')) {
-						goto('/profile', { replaceState: true });
-					}
+					// if (!window.location.pathname.startsWith('/profile')) {
+					// 	goto('/profile', { replaceState: true });
+					// }
 				}
 			} else {
 				if (!window.location.pathname.startsWith('/register')) {
@@ -159,6 +162,7 @@ export const createStore = () => {
 	const disconnect = async () => {
 		try {
 			await authClient.logout();
+			localStorage.clear();
 		} catch (error) {
 			console.error('Internet Identity disconnect error: ', error);
 		}
@@ -177,10 +181,10 @@ export const createStore = () => {
 	 */
 	const checkExistingLoginAndConnect = async (onSuccess = null, onError = null) => {
 		// Check login state if user is already logged in
-		const authClient = await AuthClient.create();
+		authClient = await AuthClient.create();
 		if (await authClient.isAuthenticated()) {
 			const identity = authClient.getIdentity();
-			initInternetIdentity(identity);
+			await initInternetIdentity(identity);
 			onSuccess && (await onSuccess());
 		} else {
 			onError && (await onError());
@@ -192,7 +196,8 @@ export const createStore = () => {
 		update,
 		internetIdentityConnect,
 		disconnect,
-		checkExistingLoginAndConnect
+		checkExistingLoginAndConnect,
+    initInternetIdentity
 	};
 };
 

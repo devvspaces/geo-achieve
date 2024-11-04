@@ -7,14 +7,14 @@ import fs from 'fs';
 
 dotenv.config({ path: '../../.env' });
 
+
 const isDev = process.env['DFX_NETWORK'] === 'local';
-// Get the network name, or `local` by default.
 const networkName = process.env['DFX_NETWORK'] || 'local';
 
 let canisterIds = {}; 
 try {
 	canisterIds = JSON.parse(
-		fs.readFileSync(isDev ? '../../.dfx/local/canister_ids.json' : './canister_ids.json').toString()
+		fs.readFileSync(isDev ? '../../.dfx/local/canister_ids.json' : '../../canister_ids.json').toString()
 	);
 } catch (e) {
   console.error(e);
@@ -29,6 +29,7 @@ const canisterDefinitions = Object.entries(canisterIds).reduce(
 	}),
 	{}
 );
+console.log(canisterDefinitions) 
 
 export default defineConfig({
 	build: {

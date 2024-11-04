@@ -38,8 +38,8 @@ shared ({ caller }) actor class Backend() {
   stable var acls = Vector.new<Principal>();
   stable var admin = caller;
 
-  var nftActor_ : GeoNFT = actor ("aaaaa-aa");
-  stable var nftCanisterId_ : Text = Types.INVALID_CANISTER_ID;
+  stable var nftCanisterId_ = "aaaaa-aa";
+  var nftActor_ : GeoNFT = actor (nftCanisterId_);
 
   private func _isAdmin(p : Principal) : Bool {
     Debug.print(Principal.toText(admin));
@@ -371,7 +371,7 @@ shared ({ caller }) actor class Backend() {
               {
                 immutable = false;
                 name = "gpa";
-                value = #Nat(x.gpa);
+                value = #Float(x.gpa);
               },
             ]);
             "Degree";
@@ -431,7 +431,7 @@ shared ({ caller }) actor class Backend() {
           {
             immutable = false;
             name = "institution";
-            value = #Principal(metadata.institution);
+            value = #Text(Principal.toText(metadata.institution));
           },
           {
             immutable = false;
@@ -443,13 +443,19 @@ shared ({ caller }) actor class Backend() {
             name = "meta";
             value = certKindMeta;
           },
+          {
+            immutable = false;
+            name = "issued_on";
+            value = #Int(Time.now());
+          }
         ]);
+        tokenCounter := tokenCounter + 1;
         let tokens : ICRC7Type.SetNFTRequest = [{
-          token_id = tokenCounter + 1;
+          token_id = tokenCounter;
           owner = ?{ owner = metadata.recipient; subaccount = null };
           override = true;
           created_at_time = null;
-          memo = ?Text.encodeUtf8("Transfer memo");
+          memo = ?Text.encodeUtf8("Issued Geo");
           metadata = candyMetadata;
         }];
         let nfts = await nftActor_.icrcX_mint(tokens);
@@ -465,16 +471,15 @@ shared ({ caller }) actor class Backend() {
                 switch (certs) {
                   case (null) {
                     let newCerts = Vector.new<Nat>();
-                    Vector.add(newCerts, tokenId);
+                    Vector.add(newCerts, tokenCounter);
                     Map.set(institution_to_certs, thash, institution.id, newCerts);
                   };
                   case (?t) {
-                    Vector.add(t, tokenId);
+                    Vector.add(t, tokenCounter);
                     Map.set(institution_to_certs, thash, institution.id, t);
                   };
                 };
-                tokenCounter := tokenCounter + 1;
-                return #ok(tokenId);
+                return #ok(tokenCounter);
               };
             };
           };

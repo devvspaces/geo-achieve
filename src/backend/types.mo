@@ -85,7 +85,7 @@ module {
     #Degree : {
       major : Text;
       years : Nat;
-      gpa : Nat;
+      gpa : Float;
     };
     #Workshop : {
       duration : Text;
